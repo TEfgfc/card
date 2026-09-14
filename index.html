@@ -2573,6 +2573,25 @@ body {
   text-shadow: 0 0 14px rgba(240, 214, 138, 0.55);
 }
 
+/* ---------- 星图入口：列车末端的“换乘站”，点击前往全屏星图导航 ---------- */
+.astro-map-entry .stop-node {
+  border-color: rgba(240, 214, 138, 0.55);
+  background: rgba(240, 214, 138, 0.10);
+}
+.astro-map-entry .map-star {
+  font-size: 12px;
+  line-height: 1;
+  color: #f0d68a;
+  text-shadow: 0 0 8px rgba(240, 214, 138, 0.9);
+}
+.astro-map-entry .stop-label {
+  color: rgba(240, 214, 138, 0.6);
+}
+.astro-map-entry:hover .stop-node {
+  transform: scale(1.14) rotate(15deg);
+  box-shadow: 0 0 16px rgba(240, 214, 138, 0.5);
+}
+
 @keyframes nodePulse {
   0%, 100% {
     box-shadow:
@@ -3670,6 +3689,12 @@ document.addEventListener('click', function(e) {
           <span class="stop-label">歌单</span>
         </a>
 
+        <!-- 星图换乘站：点击前往全屏星图导航页 -->
+        <a class="astro-stop astro-map-entry" href="https://tefgfc.github.io/card/nav/">
+          <span class="stop-node"><span class="map-star">✦</span></span>
+          <span class="stop-label">星图</span>
+        </a>
+
       </div>
     </div>
   </div>
@@ -3688,9 +3713,11 @@ document.addEventListener('click', function(e) {
   var train  = document.getElementById('astroTrain');
   var stops  = Array.prototype.slice.call(nav.querySelectorAll('.astro-stop'));
 
-  /* 每个站点对应的页面区块 */
+  /* 每个站点对应的页面区块（星图入口等外部链接没有对应区块，返回 null） */
   var sections = stops.map(function (s) {
-    return document.querySelector(s.getAttribute('href'));
+    var href = s.getAttribute('href');
+    if (href.charAt(0) !== '#') return null;
+    return document.querySelector(href);
   });
 
   var currentIndex = -1;
@@ -3774,8 +3801,10 @@ document.addEventListener('click', function(e) {
   /* ---------- 点击站点：平滑滚动到对应区块 ---------- */
   stops.forEach(function (s) {
     s.addEventListener('click', function (e) {
+      var href = s.getAttribute('href');
+      if (href.charAt(0) !== '#') return; /* 星图入口等外部链接：交给浏览器默认跳转 */
       e.preventDefault();
-      var target = document.querySelector(s.getAttribute('href'));
+      var target = document.querySelector(href);
       if (!target) return;
 
       var y = target.getBoundingClientRect().top + window.scrollY - 92;

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星穹列车 · 个人导航</title>
+    <style>
+        :root {
+            --bg-dark: #0d0b1a;
+            --gold: #f0d68a;
+            --purple: #9d6ff0;
+            --text-main: #efe6ff;
+            --text-sub: #b9a8d8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            font-family: 'Courier New', Courier, monospace, sans-serif;
+            overflow: hidden;
+            color: var(--text-main);
+        }
+
+        /* 星空背景 Canvas */
+        #star-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 顶层容器 */
+        #app {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* SVG 轨道层 */
+        #rail-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .rail-line {
+            fill: none;
+            stroke: url(#rail-gradient);
+            stroke-width: 2;
+            stroke-dasharray: 10, 15;
+            animation: flow 2s linear infinite;
+            filter: drop-shadow(0 0 5px rgba(240, 214, 138, 0.5));
+        }
+
+        @keyframes flow {
+            to { stroke-dashoffset: -25; }
+        }
+
+        /* 轨道上跑动的金色光点 */
+        .rail-orb {
+            fill: #fff6d0;
+            filter: drop-shadow(0 0 6px rgba(240, 214, 138, 0.95));
+        }
+
+        /* 节点容器 */
+        #nodes-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+        }
+
+        /* 导航节点 */
+        .node {
+            position: absolute;
+            width: 220px;
+            padding: 20px;
+            background: rgba(20, 16, 40, 0.7);
+            border: 1px solid rgba(240, 214, 138, 0.3);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 0 15px rgba(240, 214, 138, 0.1);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
+            text-align: center;
+            transform: translate(-50%, -50%); /* 居中定位 */
+        }
+
+        .node:hover {
+            transform: translate(-50%, -50%) scale(1.05);
+            border-color: var(--gold);
+            box-shadow: 0 0 30px rgba(240, 214, 138, 0.4);
+            background: rgba(32, 26, 58, 0.9);
+        }
+
+        .node .icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: block;
+            filter: drop-shadow(0 0 8px var(--gold));
+        }
+
+        .node .title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--gold);
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .node .desc {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+        }
+
+        /* 节点上方旗帜装饰 */
+        .node::before {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 15px;
+            background: var(--purple);
+            box-shadow: 0 0 8px var(--purple);
+        }
+
+        .node::after {
+            content: '▼';
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--purple);
+            font-size: 10px;
+            text-shadow: 0 0 8px var(--purple);
+        }
+
+        /* 左上角标题 */
+        .header-title {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            z-index: 10;
+            font-size: 1.5rem;
+            letter-spacing: 3px;
+            color: var(--text-main);
+            text-shadow: 0 0 10px rgba(240, 214, 138, 0.5);
+            pointer-events: none;
+        }
+
+        .header-title span {
+            color: var(--gold);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 背景星空 -->
+    <canvas id="star-canvas"></canvas>
+
+    <div id="app">
+        <!-- 左上角标题 -->
+        <div class="header-title">星穹列车 <span>·</span> 个人导航</div>
+
+        <!-- SVG 轨道层 -->
+        <svg id="rail-layer">
+            <defs>
+                <linearGradient id="rail-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#f0d68a" />
+                    <stop offset="100%" stop-color="#9d6ff0" />
+                </linearGradient>
+            </defs>
+        </svg>
+
+        <!-- 节点容器 -->
+        <div id="nodes-container"></div>
+    </div>
+
+    <script>
+        // 1. 定义导航节点数据 (坐标基于百分比，方便适配各种屏幕)
+        const nodesData = [
+            { id: 'node1', title: '个人主页', desc: 'Tefgfc 的数字名片', icon: '👨‍🚀', x: 15, y: 70, link: '/card/' },
+            { id: 'node2', title: '产品官网', desc: '5 个网站 · 点击展开', icon: '🛰️', x: 40, y: 35, link: '#' },
+            { id: 'node3', title: '模板及素材库', desc: '13 个网站 · 点击展开', icon: '📦', x: 65, y: 65, link: '#' },
+            { id: 'node4', title: '其他', desc: '2 个网站 · 点击展开', icon: '🔭', x: 85, y: 30, link: '#' }
+        ];
+
+        // 连线关系 (source -> target)
+        const edgesData = [
+            { from: 'node1', to: 'node2' },
+            { from: 'node2', to: 'node3' },
+            { from: 'node3', to: 'node4' }
+        ];
+
+        // 2. 初始化 Canvas 星空背景
+        const canvas = document.getElementById('star-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        let mouseX = 0, mouseY = 0;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 生成星尘粒子
+        for (let i = 0; i < 200; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 1.5 + 0.5,
+                alpha: Math.random() * 0.5 + 0.5,
+                speed: Math.random() * 0.05 + 0.01,
+                depth: Math.random() * 0.5 + 0.5 // 用于视差效果
+            });
+        }
+
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(star => {
+                // 视差效果偏移量
+                const offsetX = (mouseX - window.innerWidth / 2) * star.depth * 0.02;
+                const offsetY = (mouseY - window.innerHeight / 2) * star.depth * 0.02;
+
+                ctx.beginPath();
+                ctx.arc(star.x + offsetX, star.y + offsetY, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fill();
+
+                // 让星尘缓慢漂移
+                star.y -= star.speed;
+                if (star.y < 0) {
+                    star.y = canvas.height;
+                    star.x = Math.random() * canvas.width;
+                }
+            });
+            requestAnimationFrame(drawStars);
+        }
+        drawStars();
+
+        // 鼠标视差监听
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // 3. 悬停音效：用 Web Audio 合成一声很轻的「叮」
+        let audioCtx = null;
+        function playTing() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const t = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1500, t);
+                osc.frequency.exponentialRampToValueAtTime(880, t + 0.15);
+                gain.gain.setValueAtTime(0.05, t);
+                gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(t);
+                osc.stop(t + 0.32);
+            } catch (e) { /* 音频不可用时静默跳过 */ }
+        }
+
+        // 4. 渲染导航节点与轨道
+        const nodesContainer = document.getElementById('nodes-container');
+        const railLayer = document.getElementById('rail-layer');
+        let railPaths = []; // 当前所有轨道 path 的引用
+        let railOrbs = [];  // 每条轨道上的光点
+
+        function renderNavigation() {
+            nodesContainer.innerHTML = '';
+            // 移除除了 defs 之外的旧路线
+            const oldPaths = railLayer.querySelectorAll('path');
+            oldPaths.forEach(p => p.remove());
+            const oldOrbs = railLayer.querySelectorAll('.rail-orb');
+            oldOrbs.forEach(o => o.remove());
+            railPaths = [];
+            railOrbs = [];
+
+            // 渲染节点
+            nodesData.forEach(node => {
+                const el = document.createElement('div');
+                el.className = 'node';
+                el.id = node.id;
+                el.style.left = `${node.x}%`;
+                el.style.top = `${node.y}%`;
+                el.innerHTML = `
+                    <span class="icon">${node.icon}</span>
+                    <div class="title">${node.title}</div>
+                    <div class="desc">${node.desc}</div>
+                `;
+
+                // 悬停播放音效
+                el.addEventListener('mouseenter', playTing);
+
+                // 点击跳转
+                el.addEventListener('click', () => {
+                    if (node.link && node.link !== '#') {
+                        window.location.href = node.link;
+                    } else {
+                        alert(`即将展开：${node.title}`);
+                    }
+                });
+
+                nodesContainer.appendChild(el);
+            });
+
+            // 渲染 SVG 轨道
+            edgesData.forEach(edge => {
+                const fromNode = nodesData.find(n => n.id === edge.from);
+                const toNode = nodesData.find(n => n.id === edge.to);
+
+                if (fromNode && toNode) {
+                    const x1 = (fromNode.x / 100) * window.innerWidth;
+                    const y1 = (fromNode.y / 100) * window.innerHeight;
+                    const x2 = (toNode.x / 100) * window.innerWidth;
+                    const y2 = (toNode.y / 100) * window.innerHeight;
+
+                    // 计算控制点，形成贝塞尔曲线
+                    const cx1 = x1 + (x2 - x1) * 0.4;
+                    const cy1 = y1;
+                    const cx2 = x2 - (x2 - x1) * 0.4;
+                    const cy2 = y2;
+
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`);
+                    path.setAttribute('class', 'rail-line');
+                    railLayer.appendChild(path);
+                    railPaths.push(path);
+
+                    // 每条轨道配一个金色光点，从不同位置出发
+                    const orb = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    orb.setAttribute('r', '4');
+                    orb.setAttribute('class', 'rail-orb');
+                    orb.setAttribute('cx', x1);
+                    orb.setAttribute('cy', y1);
+                    railLayer.appendChild(orb);
+                    railOrbs.push(orb);
+                }
+            });
+        }
+
+        // 5. 光点沿轨道循环跑动
+        function animateOrbs(ts) {
+            railPaths.forEach((path, i) => {
+                if (!path.getTotalLength || !railOrbs[i]) return;
+                const len = path.getTotalLength();
+                // 速度与起始相位错开，让三条轨道的光点节奏不同
+                const speed = 3600 + i * 800;
+                const phase = i * 0.37;
+                const progress = ((ts / speed) + phase) % 1;
+                const pt = path.getPointAtLength(progress * len);
+                railOrbs[i].setAttribute('cx', pt.x);
+                railOrbs[i].setAttribute('cy', pt.y);
+            });
+            requestAnimationFrame(animateOrbs);
+        }
+        requestAnimationFrame(animateOrbs);
+
+        // 页面加载和窗口尺寸变化时重新计算轨道位置
+        window.addEventListener('resize', () => {
+            renderNavigation();
+        });
+
+        renderNavigation();
+
+    </script>
+</body>
+</html>

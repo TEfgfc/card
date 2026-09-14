@@ -2310,15 +2310,15 @@ html.no-motion .reveal {
   line-height: 1.3;
 }
 
-/* 摆件照片：放在爱好卡片里，限宽居中，点击可放大 */
+/* 摆件照片：放在爱好卡片里，居中大图完整显示，不用点开也能看清 */
 .hobby-photo {
-  max-width: 560px;
+  max-width: 880px;
   margin: 6px auto 0;
 }
 .hobby-photo img {
   width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+  height: auto;               /* 按原图比例完整显示，不裁切 */
+  display: block;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--tag-bg);
@@ -3151,7 +3151,7 @@ html.no-motion .astro-stop.active .stop-node {
       <div class="hobby-card hobby-card-full">
         <div class="hobby-emoji">🧸</div>
         <div class="hobby-name">收集一些摆件</div>
-        <div class="hobby-desc">真的忍不住…钱包在哭泣。点照片可以放大看细节。</div>
+        <div class="hobby-desc">真的忍不住…钱包在哭泣。</div>
         <figure class="hobby-photo">
           <img src="https://cdn.jsdelivr.net/gh/TEfgfc/card@main/images/figures-1.jpg" data-full="https://cdn.jsdelivr.net/gh/TEfgfc/card@main/images/figures-1.jpg" alt="我的摆件收藏架" width="1600" height="1200" />
           <figcaption>我的摆件收藏架 🧸</figcaption>

@@ -163,7 +163,7 @@
            ========================================================== */
         const navConfig = [
             // —— 出发站：点击返回你的数字名片主页 ——
-            { id: 'mod-home',  title: '出发站',   desc: '返回数字名片主页',   icon: '🚂',   x: 14, y: 60, link: '/card/' },
+            { id: 'mod-home',  title: '出发站',   desc: '返回数字名片主页',   icon: '🚂',   x: 12, y: 50, link: '/card/' },
             // —— 下面是主页里真实的 8 个板块，每个都对应名片页的一个区块 ——
             { id: 'mod-about', title: '关于',     desc: '了解我是谁',         icon: '👨‍🚀', x: 32, y: 28, link: '#about' },
             { id: 'mod-journey', title: '足迹',   desc: '我的成长轨迹',       icon: '🗺️',  x: 48, y: 14, link: '#journey' },
@@ -172,7 +172,9 @@
             { id: 'mod-photos', title: '相册',    desc: '定格的照片',         icon: '📷',   x: 86, y: 44, link: '#photos' },
             { id: 'mod-hobbies', title: '爱好',   desc: '生活的调味剂',       icon: '🎮',   x: 76, y: 66, link: '#hobbies' },
             { id: 'mod-queue', title: '清单',     desc: '想看想做的',         icon: '📝',   x: 56, y: 78, link: '#queue' },
-            { id: 'mod-playlist', title: '歌单',  desc: '循环播放的歌',       icon: '🎵',   x: 34, y: 64, link: '#playlist' }
+            { id: 'mod-playlist', title: '歌单',  desc: '循环播放的歌',       icon: '🎵',   x: 34, y: 68, link: '#playlist' },
+            // 👇 摆件收集：点击后跳到主页的摆件区块
+            { id: 'mod-figures', title: '摆件收集', desc: '真的忍不住…钱包在哭泣', icon: '🧸', x: 14, y: 84, link: '#figures' }
         ];
 
         // 连线关系：把上面的 id 按顺序两两连起来，形成星轨
@@ -185,7 +187,9 @@
             { from: 'mod-quests',   to: 'mod-photos' },
             { from: 'mod-photos',   to: 'mod-hobbies' },
             { from: 'mod-hobbies',  to: 'mod-queue' },
-            { from: 'mod-queue',    to: 'mod-playlist' }
+            { from: 'mod-queue',    to: 'mod-playlist' },
+            // 👇 让歌单连到摆件收集站
+            { from: 'mod-playlist', to: 'mod-figures' }
         ];
 
         /* ==========================================================

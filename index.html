@@ -27,7 +27,8 @@
 
 <!-- 预置主题 -->
 <script>
-  if (localStorage.getItem('card-theme') === 'dark') {
+  /* 默认就是深空主题（被宇宙包围）；只有手动切过浅色才用浅色 */
+  if (localStorage.getItem('card-theme') !== 'light') {
     document.documentElement.classList.add('dark');
   }
 </script>
@@ -83,7 +84,7 @@
 }
 
 html.dark {
-  --bg: #0e0c1a;
+  --bg: #05050a;   /* 深空底色：与星图导航页一致 */
   --bg-alt: #14112a;
   --surface: #1a1633;
   --surface-soft: #1e1a38;
@@ -138,6 +139,82 @@ body {
   /* 给两侧固定装饰条让出位置 */
   padding: 0 44px;
 }
+
+/* ============================================================
+   宇宙背景层（深色主题专用）
+   层级从底到顶：
+   body::before 星云(-3) < #star-canvas 星星(-2)
+   < body::after 天体(-1) ≈ html::before 网格(-1) < 页面内容
+   浅色主题下全部隐藏，不打扰原有配色；滚动页面时背景固定，
+   内容像在太空中滑过
+   ============================================================ */
+
+/* 星云：彩色光雾缓慢漂移 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(157, 78, 221, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 85% 70%, rgba(0, 229, 255, 0.25) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(255, 183, 3, 0.1) 0%, transparent 60%);
+  filter: blur(60px);
+  animation: nebulaDrift 20s ease-in-out infinite alternate;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+html.dark body::before { opacity: 1; }
+
+@keyframes nebulaDrift {
+  0%   { transform: scale(1)    translate(0, 0); }
+  100% { transform: scale(1.1)  translate(-2%, 2%); }
+}
+
+/* 天体：巨大的半个星球悬浮在右上角 */
+body::after {
+  content: '';
+  position: fixed;
+  top: -20vh; right: -10vw;
+  width: 60vw; height: 60vw;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(157, 78, 221, 0.3), transparent 70%);
+  box-shadow: inset -20px -20px 100px rgba(0, 0, 0, 0.8), 0 0 80px rgba(157, 78, 221, 0.2);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+html.dark body::after { opacity: 1; }
+
+/* 全息网格：铺在整页内容后面 */
+html::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+html.dark::before { opacity: 1; }
+
+/* 星空画布：锁死全屏，星星永远在内容下面 */
+#star-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: -2;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+html.dark #star-canvas { opacity: 1; }
 
 a { color: inherit; text-decoration: none; }
 
@@ -2208,7 +2285,8 @@ html.no-motion .reveal {
    ============================================================ */
 @media print {
   .topbar, .float-nav, .scroll-progress, .doodle-layer, .side-pattern,
-  .theme-btn, .hero-bg, .char-bubble { display: none !important; }
+  .theme-btn, .hero-bg, .char-bubble, #star-canvas,
+  html::before, body::before, body::after { display: none !important; }
   body { background: #fff; color: #000; }
   .card { box-shadow: none; border: 1px solid #ddd; }
   a { color: #000; text-decoration: underline; }
@@ -2741,6 +2819,9 @@ html.no-motion .astro-stop.active .stop-node {
 </head>
 
 <body>
+
+<!-- 宇宙星空画布：深色主题下显示，星星闪烁 + 鼠标视差 -->
+<canvas id="star-canvas" aria-hidden="true"></canvas>
 
 <!-- 自定义光标小紫点 -->
 <div class="cursor-dot" id="cursorDot"></div>
@@ -3347,6 +3428,63 @@ html.no-motion .astro-stop.active .stop-node {
     var isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('card-theme', isDark ? 'dark' : 'light');
     update();
+  });
+})();
+
+/* ============================================================
+   1.1 宇宙星空背景：闪烁星星 + 鼠标视差（深色主题下可见）
+   ============================================================ */
+(function() {
+  var canvas = document.getElementById('star-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var stars = [];
+  var mouseX = 0, mouseY = 0;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* 生成 150 颗星尘（位置、大小、亮度、速度、景深随机） */
+  for (var i = 0; i < 150; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      radius: Math.random() * 1.5 + 0.5,
+      alpha: Math.random() * 0.5 + 0.5,
+      speed: Math.random() * 0.05 + 0.01,
+      depth: Math.random() * 0.5 + 0.5   /* 景深：越大跟随鼠标的视差越明显 */
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      /* 视差：离屏幕中心越远，星星偏移越多，产生立体感 */
+      var ox = (mouseX - window.innerWidth / 2) * s.depth * 0.02;
+      var oy = (mouseY - window.innerHeight / 2) * s.depth * 0.02;
+      ctx.beginPath();
+      ctx.arc(s.x + ox, s.y + oy, s.radius, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, ' + s.alpha + ')';
+      ctx.fill();
+      /* 星星缓慢向上漂移，漂出屏幕就从底部重生 */
+      s.y -= s.speed;
+      if (s.y < 0) {
+        s.y = canvas.height;
+        s.x = Math.random() * canvas.width;
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+
+  window.addEventListener('mousemove', function(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
   });
 })();
 

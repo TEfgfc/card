@@ -9,7 +9,7 @@
            配色变量：想换颜色只改这里
            ========================================================== */
         :root {
-            --bg-dark: #070710;   /* 深空底色 */
+            --bg-dark: #05050A;   /* 深空底色（与 body 背景一致） */
             --gold: #f0d68a;      /* 金色（主色，节点与标题） */
             --purple: #9d6ff0;    /* 紫色（轨道末端与旗帜） */
             --text-main: #e0e7ff; /* 主要文字 */
@@ -19,21 +19,76 @@
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
 
         body {
-            background-color: var(--bg-dark);
+            background-color: #05050A;   /* 深空底色：垫在所有背景层的最下面 */
             font-family: 'Courier New', monospace;
-            overflow: hidden; /* 导航页是全屏星图，不允许页面滚动 */
+            overflow-x: hidden;
+            overflow-y: hidden;          /* 导航页是全屏星图，不允许页面滚动 */
             color: var(--text-main);
+        }
+
+        /* ==========================================================
+           多层背景层级（从底到顶）：
+           body::before 星云(-3)
+           → #star-canvas 星星(-2)
+           → body::after 天体(-1)
+           → #app 内容(1，内部网格垫在节点下面)
+           ========================================================== */
+
+        /* 3. 全屏星云：彩色光雾缓慢漂移 */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;                   /* 铺满全屏 */
+            z-index: -3;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(157, 78, 221, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 85% 70%, rgba(0, 229, 255, 0.25) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(255, 183, 3, 0.1) 0%, transparent 60%);
+            filter: blur(60px);
+            animation: nebulaDrift 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes nebulaDrift {
+            0%   { transform: scale(1)    translate(0, 0); }
+            100% { transform: scale(1.1)  translate(-2%, 2%); }
+        }
+
+        /* 4. 全屏天体：巨大的半个星球悬浮在右上角 */
+        body::after {
+            content: '';
+            position: fixed;
+            top: -20vh; right: -10vw;
+            width: 60vw; height: 60vw;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(157, 78, 221, 0.3), transparent 70%);
+            box-shadow: inset -20px -20px 100px rgba(0, 0, 0, 0.8), 0 0 80px rgba(157, 78, 221, 0.2);
+            z-index: -1;                /* 比星云和星星高，比内容低 */
+            pointer-events: none;
         }
 
         /* 背景星尘画布：铺满全屏，不挡点击 */
         #star-canvas {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 0;
+            position: fixed;  /* 锁死全屏，不随内容移动 */
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: -2;      /* 最底层：在星云之上、内容之下 */
             pointer-events: none;
         }
 
         #app { position: relative; width: 100vw; height: 100vh; z-index: 1; }
+
+        /* 5. 全息网格与扫描线：铺在内容后面 */
+        #app::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: -1;                /* 在 #app 内部垫底：网格永远在节点下面 */
+            background-image:
+                linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
 
         /* SVG 轨道层：在节点下面，不挡点击 */
         #rail-layer {
@@ -66,7 +121,7 @@
         #nodes-container {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
-            z-index: 3; /* 节点在最上层，可以点击 */
+            z-index: 10; /* 节点必须高于所有背景层，保证可以点击 */
         }
 
         /* ==========================================================

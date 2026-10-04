@@ -1510,6 +1510,11 @@ html.dark .skill-track {
   animation: doPulse 3.6s ease-in-out infinite; /* 从 2.4s 拉到 3.6s */
 }
 
+.queue-status.done {
+  background: rgba(110, 200, 140, 0.15);
+  color: #5db87a;
+}
+
 @keyframes doPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(120, 100, 220, 0.25); }
   50%      { box-shadow: 0 0 0 6px rgba(120, 100, 220, 0); } /* 从 8px 减到 6px，透明度减半 */
@@ -3402,7 +3407,7 @@ html.no-motion .astro-stop.active .stop-node {
     <div class="queue-list reveal">
       <div class="queue-item">
         <span class="label">📚 考四级</span>
-        <span class="queue-status">未开始</span>
+        <span class="queue-status doing">进行中</span>
       </div>
       <div class="queue-item">
         <span class="label">🤝 交好多新朋友</span>
@@ -3414,7 +3419,7 @@ html.no-motion .astro-stop.active .stop-node {
       </div>
       <div class="queue-item">
         <span class="label">🎬 去看《复联4》重映 <small>(2026.9.25 中秋!)</small></span>
-        <span class="queue-status">未开始</span>
+        <span class="queue-status done">已完成</span>
       </div>
       <div class="queue-item">
         <span class="label">🍚 在杭电找到最好吃的食堂窗口并安利给所有人</span>

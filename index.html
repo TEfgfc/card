@@ -2278,6 +2278,108 @@ html.no-motion .reveal {
 }
 
 /* ============================================================
+   彩蛋：科乐美秘籍 — 满屏星星下落
+   ============================================================ */
+#konami-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+#konami-layer.active { opacity: 1; }
+
+.konami-star {
+  position: absolute;
+  top: -20px;
+  font-size: 1.4rem;
+  animation: konamiFall linear forwards;
+  filter: drop-shadow(0 0 4px rgba(232, 201, 122, 0.8));
+}
+@keyframes konamiFall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(360deg); opacity: 0.3; }
+}
+
+.konami-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 10000;
+  background: var(--surface);
+  border: 1px solid var(--accent-line);
+  color: var(--text);
+  padding: 12px 24px;
+  border-radius: 100px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 8px 32px rgba(80, 50, 160, 0.3);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+.konami-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================================
+   鼠标星尘拖尾
+   ============================================================ */
+#stardust-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+/* ============================================================
+   照片 3D 倾斜
+   ============================================================ */
+.photo-card {
+  perspective: 800px;
+}
+.photo-card img {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.photo-card:hover img {
+  box-shadow: 0 20px 50px -15px rgba(80, 50, 160, 0.35);
+}
+
+/* ============================================================
+   星座连线互动
+   ============================================================ */
+.constellation-hint {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  font-size: 0.72rem;
+  padding: 8px 14px;
+  border-radius: 100px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.4s ease;
+  pointer-events: none;
+}
+.constellation-hint.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.constellation-hint.found {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+/* ============================================================
    自定义光标小紫点
    ============================================================ */
 .cursor-dot {
@@ -2847,6 +2949,15 @@ html.no-motion .astro-stop.active .stop-node {
 
 <!-- 宇宙星空画布：深色主题下显示，星星闪烁 + 鼠标视差 -->
 <canvas id="star-canvas" aria-hidden="true"></canvas>
+
+<!-- 鼠标星尘拖尾画布 -->
+<canvas id="stardust-canvas" aria-hidden="true"></canvas>
+
+<!-- 科乐美秘籍彩蛋层 -->
+<div id="konami-layer" aria-hidden="true"></div>
+
+<!-- 星座发现提示 -->
+<div class="constellation-hint" id="constellationHint"></div>
 
 <!-- 自定义光标小紫点 -->
 <div class="cursor-dot" id="cursorDot"></div>
@@ -4021,6 +4132,366 @@ document.addEventListener('click', function(e) {
   }
   /* 兜底 */
   setTimeout(init, 600);
+})();
+
+/* ============================================================
+   彩蛋 1：科乐美秘籍（↑↑↓↓←→←→BA）
+   ============================================================ */
+(function() {
+  var konamiCode = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  var progress = 0;
+  var layer = document.getElementById('konami-layer');
+  var toast = document.createElement('div');
+  toast.className = 'konami-toast';
+  toast.textContent = '🎉 秘籍生效！星星大放送';
+  document.body.appendChild(toast);
+  var toastTimer;
+
+  document.addEventListener('keydown', function(e) {
+    var key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (key === konamiCode[progress]) {
+      progress++;
+      if (progress === konamiCode.length) {
+        progress = 0;
+        triggerKonami();
+      }
+    } else {
+      progress = (key === konamiCode[0]) ? 1 : 0;
+    }
+  });
+
+  function triggerKonami() {
+    if (!layer) return;
+    layer.innerHTML = '';
+    layer.classList.add('active');
+    var emojis = ['⭐','✨','🌟','💫','⚡','🔵','🟣'];
+    for (var i = 0; i < 60; i++) {
+      var star = document.createElement('span');
+      star.className = 'konami-star';
+      star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      star.style.left = Math.random() * 100 + '%';
+      star.style.animationDuration = (2 + Math.random() * 3) + 's';
+      star.style.animationDelay = Math.random() * 1.5 + 's';
+      star.style.fontSize = (0.8 + Math.random() * 1.2) + 'rem';
+      layer.appendChild(star);
+    }
+    /* 显示提示 */
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3000);
+    /* 4 秒后清理 */
+    setTimeout(function() {
+      layer.classList.remove('active');
+      setTimeout(function() { layer.innerHTML = ''; }, 400);
+    }, 4000);
+  }
+})();
+
+/* ============================================================
+   彩蛋 2：鼠标星尘拖尾（深色主题下生效）
+   ============================================================ */
+(function() {
+  var canvas = document.getElementById('stardust-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var particles = [];
+  var mouseX = -100, mouseY = -100;
+  var isDark = document.documentElement.classList.contains('dark');
+  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  window.addEventListener('mousemove', function(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    /* 只在深色主题且非减弱动画时生成粒子 */
+    isDark = document.documentElement.classList.contains('dark');
+    if (!isDark || prefersReducedMotion) return;
+    /* 每次移动生成 2-3 颗星尘 */
+    for (var i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
+      particles.push({
+        x: mouseX + (Math.random() - 0.5) * 8,
+        y: mouseY + (Math.random() - 0.5) * 8,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: (Math.random() - 0.5) * 1.5 + 0.3,
+        life: 1,
+        decay: 0.015 + Math.random() * 0.02,
+        size: Math.random() * 2.5 + 0.5,
+        hue: Math.random() > 0.5 ? 45 : 270  /* 金色或紫色 */
+      });
+    }
+  });
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.02;  /* 轻微重力 */
+      p.life -= p.decay;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      var alpha = p.life * 0.7;
+      if (p.hue === 45) {
+        ctx.fillStyle = 'rgba(232, 201, 122, ' + alpha + ')';
+      } else {
+        ctx.fillStyle = 'rgba(157, 111, 240, ' + alpha + ')';
+      }
+      ctx.fill();
+    }
+    /* 限制粒子数量，防止卡顿 */
+    if (particles.length > 200) particles.splice(0, particles.length - 200);
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+
+/* ============================================================
+   彩蛋 3：照片 3D 倾斜
+   ============================================================ */
+(function() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (window.matchMedia('(hover: none)').matches) return;  /* 触屏设备跳过 */
+
+  var cards = document.querySelectorAll('.photo-card');
+  cards.forEach(function(card) {
+    var img = card.querySelector('img');
+    if (!img) return;
+
+    card.addEventListener('mousemove', function(e) {
+      var rect = card.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var y = e.clientY - rect.top;
+      var centerX = rect.width / 2;
+      var centerY = rect.height / 2;
+      /* 倾斜角度：最大 8 度 */
+      var rotateX = ((y - centerY) / centerY) * -8;
+      var rotateY = ((x - centerX) / centerX) * 8;
+      img.style.transform = 'perspective(800px) rotateX(' + rotateX + 'deg) rotateY(' + rotateY + 'deg) scale(1.03)';
+    });
+
+    card.addEventListener('mouseleave', function() {
+      img.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)';
+    });
+  });
+})();
+
+/* ============================================================
+   彩蛋 4：星座连线互动
+   点击背景星星，连成三组星座
+   ============================================================ */
+(function() {
+  var canvas = document.getElementById('star-canvas');
+  if (!canvas) return;
+  var hint = document.getElementById('constellationHint');
+  var isDark = document.documentElement.classList.contains('dark');
+  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* 定义三组星座：每组是一系列需要依次点击的星星位置（百分比坐标） */
+  var constellations = [
+    {
+      name: '法学座',
+      stars: [
+        { x: 15, y: 20 }, { x: 22, y: 15 }, { x: 30, y: 22 },
+        { x: 25, y: 30 }, { x: 18, y: 28 }
+      ]
+    },
+    {
+      name: '游戏座',
+      stars: [
+        { x: 70, y: 25 }, { x: 78, y: 18 }, { x: 85, y: 28 },
+        { x: 80, y: 38 }, { x: 72, y: 35 }
+      ]
+    },
+    {
+      name: 'AI 座',
+      stars: [
+        { x: 45, y: 70 }, { x: 52, y: 62 }, { x: 60, y: 68 },
+        { x: 55, y: 78 }, { x: 48, y: 75 }
+      ]
+    }
+  ];
+
+  var foundConstellations = [];
+  var activeConstellation = null;
+  var activeStarIndex = 0;
+  var connectedStars = [];  /* 已连线的星星在 canvas 上的像素位置 */
+  var hintTextTimer;
+
+  /* 计算星座星星的像素位置 */
+  function getStarPixel(star) {
+    return {
+      x: (star.x / 100) * window.innerWidth,
+      y: (star.y / 100) * window.innerHeight
+    };
+  }
+
+  /* 检测点击位置是否靠近某个待点击的星星 */
+  function checkClick(clickX, clickY) {
+    if (!activeConstellation) {
+      /* 尝试激活一个新星座 */
+      for (var c = 0; c < constellations.length; c++) {
+        if (foundConstellations.indexOf(c) !== -1) continue;
+        var firstStar = getStarPixel(constellations[c].stars[0]);
+        var dist = Math.sqrt(Math.pow(clickX - firstStar.x, 2) + Math.pow(clickY - firstStar.y, 2));
+        if (dist < 30) {
+          activeConstellation = c;
+          activeStarIndex = 1;
+          connectedStars = [firstStar];
+          showHint('✨ 点击 ' + constellations[c].name + ' 的下一颗星（' + activeStarIndex + '/' + (constellations[c].stars.length - 1) + '）');
+          return;
+        }
+      }
+    } else {
+      /* 尝试点击当前星座的下一颗星 */
+      var nextStar = getStarPixel(constellations[activeConstellation].stars[activeStarIndex]);
+      var dist2 = Math.sqrt(Math.pow(clickX - nextStar.x, 2) + Math.pow(clickY - nextStar.y, 2));
+      if (dist2 < 30) {
+        connectedStars.push(nextStar);
+        activeStarIndex++;
+        if (activeStarIndex >= constellations[activeConstellation].stars.length) {
+          /* 星座完成！ */
+          foundConstellations.push(activeConstellation);
+          showHint('🌟 发现星座：' + constellations[activeConstellation].name + '！（' + foundConstellations.length + '/3）');
+          if (foundConstellations.length === 3) {
+            setTimeout(function() { showHint('🎉 全部星座已发现！你是真正的星际探险家'); }, 2000);
+          }
+          activeConstellation = null;
+          activeStarIndex = 0;
+        } else {
+          showHint('✨ 继续连接（' + activeStarIndex + '/' + (constellations[activeConstellation].stars.length - 1) + '）');
+        }
+      }
+    }
+  }
+
+  function showHint(text) {
+    if (!hint) return;
+    hint.textContent = text;
+    hint.classList.add('visible');
+    if (foundConstellations.length > 0) hint.classList.add('found');
+    clearTimeout(hintTextTimer);
+    hintTextTimer = setTimeout(function() { hint.classList.remove('visible'); }, 4000);
+  }
+
+  /* 点击事件：只在深色主题下响应 */
+  canvas.style.pointerEvents = 'none';  /* 默认不拦截点击 */
+  /* 用 document 级监听，检查是否点在空白区域 */
+  document.addEventListener('click', function(e) {
+    isDark = document.documentElement.classList.contains('dark');
+    if (!isDark || prefersReducedMotion) return;
+    /* 如果点在可交互元素上，不触发星座 */
+    if (e.target.closest('a, button, .photo-card, .card, .quest-card, .hobby-card, .track-item, .modal')) return;
+    checkClick(e.clientX, e.clientY);
+  });
+
+  /* 显示星座提示（首次进入深色模式时） */
+  var hintShown = false;
+  var observer = new MutationObserver(function() {
+    isDark = document.documentElement.classList.contains('dark');
+    if (isDark && !hintShown && !prefersReducedMotion) {
+      hintShown = true;
+      setTimeout(function() {
+        showHint('🌟 点击星星，尝试连接星座（0/3）');
+      }, 2000);
+    }
+  });
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+  /* 绘制星座连线 —— 挂在已有的星空绘制循环上 */
+  /* 通过 hook requestAnimationFrame 来叠加绘制 */
+  var originalDraw = null;
+  /* 用独立的 overlay canvas 绘制连线，避免干扰主星空 */
+  var overlay = document.createElement('canvas');
+  overlay.id = 'constellation-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:-1;pointer-events:none;';
+  document.body.appendChild(overlay);
+  var octx = overlay.getContext('2d');
+
+  function resizeOverlay() {
+    overlay.width = window.innerWidth;
+    overlay.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeOverlay);
+  resizeOverlay();
+
+  function drawConstellations() {
+    octx.clearRect(0, 0, overlay.width, overlay.height);
+
+    /* 绘制已发现的星座（常亮） */
+    foundConstellations.forEach(function(cIdx) {
+      var stars = constellations[cIdx].stars;
+      octx.beginPath();
+      for (var i = 0; i < stars.length; i++) {
+        var p = getStarPixel(stars[i]);
+        if (i === 0) octx.moveTo(p.x, p.y);
+        else octx.lineTo(p.x, p.y);
+      }
+      /* 闭合 */
+      var first = getStarPixel(stars[0]);
+      octx.lineTo(first.x, first.y);
+      octx.strokeStyle = 'rgba(232, 201, 122, 0.35)';
+      octx.lineWidth = 1;
+      octx.stroke();
+
+      /* 画星星点 */
+      stars.forEach(function(s) {
+        var p = getStarPixel(s);
+        octx.beginPath();
+        octx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        octx.fillStyle = 'rgba(232, 201, 122, 0.7)';
+        octx.fill();
+      });
+    });
+
+    /* 绘制正在连接的星座（高亮） */
+    if (activeConstellation !== null && connectedStars.length > 0) {
+      octx.beginPath();
+      connectedStars.forEach(function(p, i) {
+        if (i === 0) octx.moveTo(p.x, p.y);
+        else octx.lineTo(p.x, p.y);
+      });
+      octx.strokeStyle = 'rgba(157, 111, 240, 0.7)';
+      octx.lineWidth = 1.5;
+      octx.setLineDash([4, 4]);
+      octx.stroke();
+      octx.setLineDash([]);
+
+      /* 画已连接的点 */
+      connectedStars.forEach(function(p) {
+        octx.beginPath();
+        octx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        octx.fillStyle = 'rgba(157, 111, 240, 0.9)';
+        octx.fill();
+      });
+
+      /* 画下一颗待点击的星星（闪烁提示） */
+      var nextStar = constellations[activeConstellation].stars[activeStarIndex];
+      if (nextStar) {
+        var np = getStarPixel(nextStar);
+        var pulse = 4 + Math.sin(Date.now() / 300) * 2;
+        octx.beginPath();
+        octx.arc(np.x, np.y, pulse, 0, Math.PI * 2);
+        octx.fillStyle = 'rgba(232, 201, 122, 0.8)';
+        octx.fill();
+        octx.beginPath();
+        octx.arc(np.x, np.y, pulse + 4, 0, Math.PI * 2);
+        octx.strokeStyle = 'rgba(232, 201, 122, 0.3)';
+        octx.lineWidth = 1;
+        octx.stroke();
+      }
+    }
+
+    requestAnimationFrame(drawConstellations);
+  }
+  drawConstellations();
 })();
 </script>
 

@@ -3,27 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>个人网页导航</title>
+    <title>个人网页导航 | 黄珈伦</title>
+    <meta name="description" content="黄珈伦的个人导航星图，快速访问数字名片的各个板块。">
     <style>
         /* ==========================================================
            配色变量：想换颜色只改这里
+           设计原则：金色为主强调色，紫色为辅助，不再引入第三种强调色
            ========================================================== */
         :root {
-            --bg-dark: #05050A;   /* 深空底色（与 body 背景一致） */
-            --gold: #f0d68a;      /* 金色（主色，节点与标题） */
-            --purple: #9d6ff0;    /* 紫色（轨道末端与旗帜） */
-            --text-main: #e0e7ff; /* 主要文字 */
-            --text-sub: #a0aec0;  /* 次要文字 */
+            --bg-dark: #06060c;      /* 深空底色：比纯黑更柔和的深蓝黑 */
+            --gold: #e8c97a;         /* 金色（主强调色）：节点、标题、轨道起点 */
+            --gold-dim: rgba(232, 201, 122, 0.2);  /* 金色低透明度：边框、阴影 */
+            --purple: #9d6ff0;       /* 紫色（辅助色）：旗帜装饰、轨道终点 */
+            --text-main: #e8ecf8;    /* 主要文字 */
+            --text-sub: #8b93a8;     /* 次要文字 */
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background-color: #05050A;   /* 深空底色：垫在所有背景层的最下面 */
-            font-family: 'Courier New', monospace;
-            overflow-x: hidden;
-            overflow-y: hidden;          /* 导航页是全屏星图，不允许页面滚动 */
+            background-color: var(--bg-dark);
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;           /* 全屏星图，不允许滚动 */
             color: var(--text-main);
+            min-height: 100dvh;        /* 移动端安全的视口高度 */
+        }
+
+        /* 减弱动画：尊重系统设置，关闭所有装饰性动画 */
+        @media (prefers-reduced-motion: reduce) {
+            body::before,
+            .rail-line,
+            .node,
+            .header-title { animation: none !important; transition: none !important; }
+            .rail-line { stroke-dasharray: none; }
         }
 
         /* ==========================================================
@@ -31,66 +43,72 @@
            body::before 星云(-3)
            → #star-canvas 星星(-2)
            → body::after 天体(-1)
-           → #app 内容(1，内部网格垫在节点下面)
+           → #app 内容(1)
            ========================================================== */
 
-        /* 3. 全屏星云：彩色光雾缓慢漂移 */
+        /* 星云：柔和的紫色光雾缓慢漂移 */
         body::before {
             content: '';
             position: fixed;
-            inset: 0;                   /* 铺满全屏 */
+            inset: 0;
             z-index: -3;
             background:
-                radial-gradient(circle at 15% 20%, rgba(157, 78, 221, 0.4) 0%, transparent 50%),
-                radial-gradient(circle at 85% 70%, rgba(0, 229, 255, 0.25) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(255, 183, 3, 0.1) 0%, transparent 60%);
-            filter: blur(60px);
-            animation: nebulaDrift 20s ease-in-out infinite alternate;
+                radial-gradient(ellipse at 20% 30%, rgba(157, 111, 240, 0.25) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 70%, rgba(232, 201, 122, 0.08) 0%, transparent 50%);
+            filter: blur(80px);
+            animation: nebulaDrift 25s ease-in-out infinite alternate;
+            pointer-events: none;
         }
 
         @keyframes nebulaDrift {
-            0%   { transform: scale(1)    translate(0, 0); }
-            100% { transform: scale(1.1)  translate(-2%, 2%); }
+            0%   { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.05) translate(-1%, 1%); }
         }
 
-        /* 4. 全屏天体：巨大的半个星球悬浮在右上角 */
+        /* 天体：右上角的巨大星球轮廓 */
         body::after {
             content: '';
             position: fixed;
-            top: -20vh; right: -10vw;
-            width: 60vw; height: 60vw;
+            top: -25vh; right: -15vw;
+            width: 65vw; height: 65vw;
             border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, rgba(157, 78, 221, 0.3), transparent 70%);
-            box-shadow: inset -20px -20px 100px rgba(0, 0, 0, 0.8), 0 0 80px rgba(157, 78, 221, 0.2);
-            z-index: -1;                /* 比星云和星星高，比内容低 */
+            background: radial-gradient(circle at 35% 35%, rgba(157, 111, 240, 0.15), transparent 65%);
+            box-shadow:
+                inset -30px -30px 120px rgba(0, 0, 0, 0.6),
+                0 0 100px rgba(157, 111, 240, 0.08);
+            z-index: -1;
             pointer-events: none;
         }
 
-        /* 背景星尘画布：铺满全屏，不挡点击 */
+        /* 星尘画布 */
         #star-canvas {
-            position: fixed;  /* 锁死全屏，不随内容移动 */
+            position: fixed;
             top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            z-index: -2;      /* 最底层：在星云之上、内容之下 */
+            width: 100vw; height: 100dvh;
+            z-index: -2;
             pointer-events: none;
         }
 
-        #app { position: relative; width: 100vw; height: 100vh; z-index: 1; }
+        #app {
+            position: relative;
+            width: 100vw; height: 100dvh;
+            z-index: 1;
+        }
 
-        /* 5. 全息网格与扫描线：铺在内容后面 */
+        /* 全息网格：极淡的金色调，与主色统一 */
         #app::before {
             content: '';
             position: fixed;
             inset: 0;
-            z-index: -1;                /* 在 #app 内部垫底：网格永远在节点下面 */
+            z-index: -1;
             background-image:
-                linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
+                linear-gradient(rgba(232, 201, 122, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(232, 201, 122, 0.02) 1px, transparent 1px);
+            background-size: 48px 48px;
             pointer-events: none;
         }
 
-        /* SVG 轨道层：在节点下面，不挡点击 */
+        /* SVG 轨道层 */
         #rail-layer {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
@@ -99,104 +117,167 @@
         }
 
         /* ==========================================================
-           轨道：贝塞尔曲线 + 虚线流光动画
+           轨道：金色渐变 + 流光虚线
            ========================================================== */
         .rail-line {
             fill: none;
-            stroke: url(#rail-gradient);          /* 金色到紫色的渐变 */
-            stroke-width: 2;
-            stroke-dasharray: 8, 12;              /* 虚线：8px 实 + 12px 空 */
-            animation: flow 1.5s linear infinite; /* 流光循环流动 */
-            filter: drop-shadow(0 0 6px rgba(240, 214, 138, 0.6));
+            stroke: url(#rail-gradient);
+            stroke-width: 1.5;
+            stroke-dasharray: 6, 14;
+            animation: flow 2s linear infinite;
+            filter: drop-shadow(0 0 4px rgba(232, 201, 122, 0.4));
         }
-        /* 虚线偏移动画：让虚线沿着轨道“流”起来 */
+
         @keyframes flow { to { stroke-dashoffset: -20; } }
 
-        /* 轨道上跑动的金色光点（像列车车灯） */
         .rail-orb {
-            fill: #fff6d0;
-            filter: drop-shadow(0 0 6px rgba(240, 214, 138, 0.95));
+            fill: #f5e6b8;
+            filter: drop-shadow(0 0 5px rgba(232, 201, 122, 0.9));
         }
 
         #nodes-container {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
-            z-index: 10; /* 节点必须高于所有背景层，保证可以点击 */
+            z-index: 10;
         }
 
         /* ==========================================================
-           节点：悬浮的玻璃拟态卡片
+           节点：玻璃拟态卡片
            ========================================================== */
         .node {
             position: absolute;
-            width: 200px;
-            padding: 15px;
-            background: rgba(15, 15, 30, 0.75);      /* 半透明深色玻璃底 */
-            border: 1px solid rgba(240, 214, 138, 0.2);
-            border-radius: 12px;
-            backdrop-filter: blur(12px);             /* 玻璃拟态：背景模糊 */
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 0 15px rgba(240, 214, 138, 0.05);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 180px;
+            padding: 14px 16px;
+            background: rgba(12, 12, 24, 0.8);
+            border: 1px solid var(--gold-dim);
+            border-radius: 10px;
+            backdrop-filter: blur(16px) saturate(1.2);
+            -webkit-backdrop-filter: blur(16px) saturate(1.2);
+            /* 内描边：模拟玻璃边缘折射高光 */
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.06),
+                inset 0 0 20px rgba(232, 201, 122, 0.03),
+                0 4px 24px rgba(0, 0, 0, 0.4);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        border-color 0.25s ease,
+                        box-shadow 0.25s ease,
+                        background-color 0.25s ease;
             cursor: pointer;
             text-align: center;
-            transform: translate(-50%, -50%); /* 以坐标点为中心定位 */
+            transform: translate(-50%, -50%);
+            /* 可聚焦：键盘用户能看到焦点环 */
         }
 
-        /* 悬停：放大 + 金色发光 */
         .node:hover {
-            transform: translate(-50%, -50%) scale(1.1);
-            border-color: var(--gold);
-            box-shadow: 0 0 30px rgba(240, 214, 138, 0.4);
-            background: rgba(25, 25, 45, 0.9);
+            transform: translate(-50%, -50%) scale(1.08);
+            border-color: rgba(232, 201, 122, 0.6);
+            background: rgba(20, 18, 35, 0.92);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                0 0 24px rgba(232, 201, 122, 0.25),
+                0 8px 32px rgba(0, 0, 0, 0.5);
         }
 
-        .node .icon  { font-size: 1.8rem; margin-bottom: 8px; display: block; filter: drop-shadow(0 0 8px var(--gold)); }
-        .node .title { font-size: 1rem; font-weight: bold; color: var(--gold); margin-bottom: 4px; letter-spacing: 1px; }
-        .node .desc  { font-size: 0.7rem; color: var(--text-sub); }
+        .node:active {
+            transform: translate(-50%, -50%) scale(0.96);
+        }
 
-        /* 节点上方的小旗杆 + 旗子（紫色装饰） */
+        /* 键盘焦点：清晰的金色焦点环 */
+        .node:focus-visible {
+            outline: 2px solid var(--gold);
+            outline-offset: 3px;
+        }
+
+        .node .icon {
+            font-size: 1.7rem;
+            margin-bottom: 6px;
+            display: block;
+            filter: drop-shadow(0 0 6px rgba(232, 201, 122, 0.6));
+        }
+
+        .node .title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--gold);
+            margin-bottom: 3px;
+            letter-spacing: 0.5px;
+        }
+
+        .node .desc {
+            font-size: 0.68rem;
+            color: var(--text-sub);
+            line-height: 1.4;
+        }
+
+        /* 节点顶部的紫色小旗（装饰） */
         .node::before {
-            content: ''; position: absolute; top: -12px; left: 50%;
-            transform: translateX(-50%); width: 2px; height: 12px;
-            background: var(--purple); box-shadow: 0 0 8px var(--purple);
-        }
-        .node::after {
-            content: '▼'; position: absolute; top: -20px; left: 50%;
-            transform: translateX(-50%); color: var(--purple);
-            font-size: 8px; text-shadow: 0 0 8px var(--purple);
+            content: '';
+            position: absolute; top: -10px; left: 50%;
+            transform: translateX(-50%);
+            width: 1.5px; height: 10px;
+            background: var(--purple);
+            opacity: 0.7;
+            box-shadow: 0 0 6px var(--purple);
         }
 
-        /* 左上角标题 */
+        .node::after {
+            content: '';
+            position: absolute; top: -16px; left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 6px solid var(--purple);
+            opacity: 0.7;
+            filter: drop-shadow(0 0 4px var(--purple));
+        }
+
+        /* 标题 */
         .header-title {
-            position: absolute; top: 30px; left: 30px; z-index: 10;
-            font-size: 1.2rem; letter-spacing: 3px;
-            text-shadow: 0 0 10px rgba(240, 214, 138, 0.5);
+            position: absolute; top: 24px; left: 24px; z-index: 10;
+            font-size: 1.05rem;
+            letter-spacing: 2px;
+            color: var(--text-sub);
             pointer-events: none;
         }
-        .header-title span { color: var(--gold); }
+
+        .header-title span {
+            color: var(--gold);
+            text-shadow: 0 0 8px rgba(232, 201, 122, 0.4);
+        }
+
+        /* ==========================================================
+           移动端适配：小屏幕上节点适当缩小，避免拥挤
+           ========================================================== */
+        @media (max-width: 768px) {
+            .node {
+                width: 130px;
+                padding: 10px 10px;
+            }
+            .node .icon { font-size: 1.3rem; margin-bottom: 4px; }
+            .node .title { font-size: 0.8rem; }
+            .node .desc { font-size: 0.6rem; }
+            .header-title { font-size: 0.9rem; top: 16px; left: 16px; }
+        }
     </style>
 </head>
 <body>
 
-    <!-- 背景星尘画布 -->
-    <canvas id="star-canvas"></canvas>
+    <canvas id="star-canvas" aria-hidden="true"></canvas>
 
     <div id="app">
-        <div class="header-title"><span>黄珈伦</span>的个人导航</div>
+        <div class="header-title" aria-label="黄珈伦的个人导航"><span>黄珈伦</span>的个人导航</div>
 
-        <!-- 轨道 SVG：定义金色→紫色的渐变 -->
-        <svg id="rail-layer">
+        <svg id="rail-layer" aria-hidden="true">
             <defs>
                 <linearGradient id="rail-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#f0d68a" />
+                    <stop offset="0%" stop-color="#e8c97a" />
                     <stop offset="100%" stop-color="#9d6ff0" />
                 </linearGradient>
             </defs>
         </svg>
 
-        <!-- 节点容器：所有节点由 JS 按 navConfig 生成 -->
-        <div id="nodes-container"></div>
+        <nav id="nodes-container" aria-label="导航节点"></nav>
     </div>
 
     <script>
@@ -204,36 +285,28 @@
            ★★★ 在这里配置你个人主页的真实模块！★★★
 
            每个节点有 6 个字段：
-           1. id:    唯一名字（随便起，连线时用，不要重复）
+           1. id:    唯一名字（连线时用，不要重复）
            2. title: 模块名称（显示在卡片上的大字）
            3. desc:  一句话描述（显示在卡片上的小字）
-           4. icon:  图标（直接用 Emoji 就行）
+           4. icon:  图标（Emoji）
            5. x, y:  节点在星图上的位置，百分比 0~100
-                    （x=50 表示屏幕正中间，y=20 表示靠上）
-           6. link:  跳转链接，两种写法：
-                    a) "#id" 开头 → 平滑滚动到页面里 id 对应的位置
-                       （导航页里没有的话，会自动跳到主站 /card/#id）
-                    b) "http" 或 "/" 开头 → 直接整页跳转
-                       （例如 "/card/" 表示返回你的数字名片主页）
+           6. link:  跳转链接
+                  a) "#id" → 跳回主站对应区块
+                  b) "/" 或 "http" → 整页跳转
            ========================================================== */
         const navConfig = [
-            // —— 出发站：点击返回你的数字名片主页 ——
-            { id: 'mod-home',  title: '出发站',   desc: '返回数字名片主页',   icon: '🚂',   x: 12, y: 50, link: '/card/' },
-            // —— 下面是主页里真实的 8 个板块，每个都对应名片页的一个区块 ——
-            { id: 'mod-about', title: '关于',     desc: '了解我是谁',         icon: '👨‍🚀', x: 32, y: 28, link: '#about' },
-            { id: 'mod-journey', title: '足迹',   desc: '我的成长轨迹',       icon: '🗺️',  x: 48, y: 14, link: '#journey' },
-            { id: 'mod-skills', title: '技能',    desc: '我点亮的技能树',     icon: '⚡',   x: 64, y: 30, link: '#skills' },
-            { id: 'mod-quests', title: '兴趣',    desc: '正在折腾的事',       icon: '🛠️',  x: 78, y: 16, link: '#quests' },
-            { id: 'mod-photos', title: '相册',    desc: '定格的照片',         icon: '📷',   x: 86, y: 44, link: '#photos' },
-            { id: 'mod-hobbies', title: '爱好',   desc: '生活的调味剂',       icon: '🎮',   x: 76, y: 66, link: '#hobbies' },
-            { id: 'mod-queue', title: '清单',     desc: '想看想做的',         icon: '📝',   x: 56, y: 78, link: '#queue' },
-            { id: 'mod-playlist', title: '歌单',  desc: '循环播放的歌',       icon: '🎵',   x: 34, y: 68, link: '#playlist' },
-            // 👇 摆件收集：摆件已并入爱好模块，点击后跳到主页的爱好区块
-            { id: 'mod-figures', title: '摆件收集', desc: '真的忍不住…钱包在哭泣', icon: '🧸', x: 14, y: 84, link: '#hobbies' }
+            { id: 'mod-home',     title: '出发站',   desc: '返回数字名片主页',   icon: '🚂',   x: 12, y: 50, link: '/card/' },
+            { id: 'mod-about',    title: '关于',     desc: '了解我是谁',         icon: '👨‍🚀', x: 32, y: 28, link: '#about' },
+            { id: 'mod-journey',  title: '足迹',     desc: '我的成长轨迹',       icon: '🗺️',  x: 48, y: 14, link: '#journey' },
+            { id: 'mod-skills',   title: '技能',     desc: '我点亮的技能树',     icon: '⚡',   x: 64, y: 30, link: '#skills' },
+            { id: 'mod-quests',   title: '兴趣',     desc: '正在折腾的事',       icon: '🛠️',  x: 78, y: 16, link: '#quests' },
+            { id: 'mod-photos',   title: '相册',     desc: '定格的照片',         icon: '📷',   x: 86, y: 44, link: '#photos' },
+            { id: 'mod-hobbies',  title: '爱好',     desc: '生活的调味剂',       icon: '🎮',   x: 76, y: 66, link: '#hobbies' },
+            { id: 'mod-queue',    title: '清单',     desc: '想看想做的',         icon: '📝',   x: 56, y: 78, link: '#queue' },
+            { id: 'mod-playlist', title: '歌单',     desc: '循环播放的歌',       icon: '🎵',   x: 34, y: 68, link: '#playlist' },
+            { id: 'mod-figures',  title: '摆件收集', desc: '真的忍不住…钱包在哭泣', icon: '🧸', x: 14, y: 84, link: '#hobbies' }
         ];
 
-        // 连线关系：把上面的 id 按顺序两两连起来，形成星轨
-        // 想改路线，只改这里的 from / to 即可
         const edgesData = [
             { from: 'mod-home',     to: 'mod-about' },
             { from: 'mod-about',    to: 'mod-journey' },
@@ -243,13 +316,15 @@
             { from: 'mod-photos',   to: 'mod-hobbies' },
             { from: 'mod-hobbies',  to: 'mod-queue' },
             { from: 'mod-queue',    to: 'mod-playlist' },
-            // 👇 让歌单连到摆件收集站
             { from: 'mod-playlist', to: 'mod-figures' }
         ];
 
         /* ==========================================================
-           以下都是底层渲染逻辑，通常不需要修改
+           底层渲染逻辑
            ========================================================== */
+
+        // 检查是否开启了「减弱动画」
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         /* ---------- 1. Canvas 星空背景 ---------- */
         const canvas = document.getElementById('star-canvas');
@@ -263,29 +338,28 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // 生成 150 颗星尘粒子（位置、大小、亮度、速度、景深随机）
-        for (let i = 0; i < 150; i++) {
+        // 生成星尘粒子
+        const starCount = prefersReducedMotion ? 60 : 120;
+        for (let i = 0; i < starCount; i++) {
             stars.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                radius: Math.random() * 1.5 + 0.5,
-                alpha: Math.random() * 0.5 + 0.5,
-                speed: Math.random() * 0.05 + 0.01,
-                depth: Math.random() * 0.5 + 0.5   // 景深：越大，跟随鼠标的视差越明显
+                radius: Math.random() * 1.3 + 0.4,
+                alpha: Math.random() * 0.4 + 0.4,
+                speed: prefersReducedMotion ? 0 : Math.random() * 0.04 + 0.01,
+                depth: Math.random() * 0.5 + 0.5
             });
         }
 
         function drawStars() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             stars.forEach(star => {
-                // 视差：离屏幕中心越远，星星偏移越多，产生立体感
-                const offsetX = (mouseX - window.innerWidth / 2) * star.depth * 0.02;
-                const offsetY = (mouseY - window.innerHeight / 2) * star.depth * 0.02;
+                const offsetX = prefersReducedMotion ? 0 : (mouseX - window.innerWidth / 2) * star.depth * 0.015;
+                const offsetY = prefersReducedMotion ? 0 : (mouseY - window.innerHeight / 2) * star.depth * 0.015;
                 ctx.beginPath();
                 ctx.arc(star.x + offsetX, star.y + offsetY, star.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fillStyle = `rgba(232, 236, 248, ${star.alpha})`;
                 ctx.fill();
-                // 星星缓慢向上漂移，漂出屏幕就从底部重生
                 star.y -= star.speed;
                 if (star.y < 0) {
                     star.y = canvas.height;
@@ -298,43 +372,40 @@
 
         window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
 
-        /* ---------- 2. 悬停音效：Web Audio 合成一声很轻的「叮」 ---------- */
+        /* ---------- 2. 悬停音效 ---------- */
         let audioCtx = null;
         function playTing() {
+            if (prefersReducedMotion) return;  // 减弱动画时也关闭音效
             try {
                 if (!audioCtx) {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 }
                 if (audioCtx.state === 'suspended') audioCtx.resume();
                 const t = audioCtx.currentTime;
-                const osc = audioCtx.createOscillator();   // 振荡器：发出声音
-                const gain = audioCtx.createGain();        // 增益：控制音量
-                osc.type = 'sine';                         // 正弦波，声音最柔和
-                osc.frequency.setValueAtTime(1500, t);     // 从 1500Hz 开始
-                osc.frequency.exponentialRampToValueAtTime(880, t + 0.15); // 0.15 秒内滑到 880Hz
-                gain.gain.setValueAtTime(0.05, t);         // 音量很小，只有 5%
-                gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);   // 0.3 秒内淡出
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1400, t);
+                osc.frequency.exponentialRampToValueAtTime(800, t + 0.12);
+                gain.gain.setValueAtTime(0.04, t);
+                gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start(t);
-                osc.stop(t + 0.32);
-            } catch (e) { /* 浏览器不支持音频时静默跳过 */ }
+                osc.stop(t + 0.28);
+            } catch (e) { /* 静默跳过 */ }
         }
 
         /* ---------- 3. 跳转逻辑 ---------- */
         function handleNavigation(link) {
             if (link.startsWith('#')) {
-                // 锚点链接：先在本页找，找到就平滑滚动过去
                 const targetEl = document.querySelector(link);
                 if (targetEl) {
-                    targetEl.scrollIntoView({ behavior: 'smooth' });
+                    targetEl.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
                 } else {
-                    // 本页没有（导航页里没有这些板块），
-                    // 就跳回名片主页并把锚点带上，主站会自动定位并平滑滚动
                     window.location.href = '/card/' + link;
                 }
             } else {
-                // 普通链接（http 或 / 开头）：整页跳转
                 window.location.href = link;
             }
         }
@@ -342,46 +413,51 @@
         /* ---------- 4. 渲染节点与轨道 ---------- */
         const nodesContainer = document.getElementById('nodes-container');
         const railLayer = document.getElementById('rail-layer');
-        let railPaths = []; // 当前所有轨道 path 的引用
-        let railOrbs = [];  // 每条轨道上的金色光点
+        let railPaths = [];
+        let railOrbs = [];
 
         function renderNavigation() {
-            // 清空旧内容（resize 时会重新渲染）
             nodesContainer.innerHTML = '';
             railLayer.querySelectorAll('path').forEach(p => p.remove());
             railLayer.querySelectorAll('.rail-orb').forEach(o => o.remove());
             railPaths = [];
             railOrbs = [];
 
-            // 按 navConfig 逐个生成节点卡片
             navConfig.forEach(node => {
                 const el = document.createElement('div');
                 el.className = 'node';
                 el.id = node.id;
+                el.setAttribute('role', 'link');
+                el.setAttribute('tabindex', '0');
+                el.setAttribute('aria-label', `${node.title}：${node.desc}`);
                 el.style.left = `${node.x}%`;
                 el.style.top = `${node.y}%`;
                 el.innerHTML = `
-                    <span class="icon">${node.icon}</span>
+                    <span class="icon" aria-hidden="true">${node.icon}</span>
                     <div class="title">${node.title}</div>
                     <div class="desc">${node.desc}</div>
                 `;
-                el.addEventListener('mouseenter', playTing);               // 悬停音效
-                el.addEventListener('click', () => handleNavigation(node.link)); // 点击跳转
+                el.addEventListener('mouseenter', playTing);
+                el.addEventListener('click', () => handleNavigation(node.link));
+                // 键盘支持：回车或空格触发跳转
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleNavigation(node.link);
+                    }
+                });
                 nodesContainer.appendChild(el);
             });
 
-            // 按 edgesData 逐条画贝塞尔轨道
             edgesData.forEach(edge => {
                 const fromNode = navConfig.find(n => n.id === edge.from);
                 const toNode = navConfig.find(n => n.id === edge.to);
                 if (fromNode && toNode) {
-                    // 百分比坐标 → 像素坐标
                     const x1 = (fromNode.x / 100) * window.innerWidth;
                     const y1 = (fromNode.y / 100) * window.innerHeight;
                     const x2 = (toNode.x / 100) * window.innerWidth;
                     const y2 = (toNode.y / 100) * window.innerHeight;
 
-                    // 控制点：让曲线柔和地“绕”过去（水平方向的贝塞尔）
                     const cx1 = x1 + (x2 - x1) * 0.4, cy1 = y1;
                     const cx2 = x2 - (x2 - x1) * 0.4, cy2 = y2;
 
@@ -391,9 +467,8 @@
                     railLayer.appendChild(path);
                     railPaths.push(path);
 
-                    // 每条轨道配一个金色光点，从起点出发
                     const orb = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    orb.setAttribute('r', '4');
+                    orb.setAttribute('r', '3.5');
                     orb.setAttribute('class', 'rail-orb');
                     orb.setAttribute('cx', x1);
                     orb.setAttribute('cy', y1);
@@ -403,14 +478,14 @@
             });
         }
 
-        /* ---------- 5. 光点沿轨道循环跑动 ---------- */
+        /* ---------- 5. 光点沿轨道跑动 ---------- */
         function animateOrbs(ts) {
+            if (prefersReducedMotion) return;  // 减弱动画：光点静止
             railPaths.forEach((path, i) => {
                 if (!path.getTotalLength || !railOrbs[i]) return;
                 const len = path.getTotalLength();
-                // 每条轨道的速度与起点相位不同，跑起来更有层次
-                const speed = 3600 + i * 800;   // 毫秒跑完全程，越大越慢
-                const phase = i * 0.37;         // 起点错开
+                const speed = 4000 + i * 900;
+                const phase = i * 0.37;
                 const progress = ((ts / speed) + phase) % 1;
                 const pt = path.getPointAtLength(progress * len);
                 railOrbs[i].setAttribute('cx', pt.x);
@@ -418,12 +493,11 @@
             });
             requestAnimationFrame(animateOrbs);
         }
-        requestAnimationFrame(animateOrbs);
+        if (!prefersReducedMotion) {
+            requestAnimationFrame(animateOrbs);
+        }
 
-        // 窗口尺寸变化时重新计算轨道与节点位置
         window.addEventListener('resize', renderNavigation);
-
-        // 首次渲染
         renderNavigation();
     </script>
 </body>
